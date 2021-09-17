@@ -2,9 +2,7 @@
 <img src="docs/img/banner.png" alt="Disgolf's banner" width="250"/>
 <img src="docs/img/logo.png" alt="Disgolf's logo" width="70"/>
 </div>
-<h2 align="center">
-Make Discord bots on Go with ease
-</h2>
+<div align="center"><h2>Make Discord bots on Go with ease</h2></div>
 
 
 ## About
