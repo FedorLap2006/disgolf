@@ -8,7 +8,7 @@ import (
 type Bot struct {
 	*discordgo.Session
 
-	Router Router
+	Router *Router
 }
 
 // New constructs a Bot, from a authentication token.
@@ -20,5 +20,6 @@ func New(token string) (*Bot, error) {
 
 	return &Bot{
 		Session: session,
+		Router:  new(Router),
 	}, nil
 }

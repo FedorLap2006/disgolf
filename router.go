@@ -53,3 +53,13 @@ func (r *Router) HandleInteraction(s *discordgo.Session, i *discordgo.Interactio
 	cmd := rcmd.(*Command)
 	cmd.Handler.HandleCommand(NewCtx(s, i.Interaction, nil))
 }
+
+// NewRouter constructs a router from a set of predefined commands.
+func NewRouter(initial []*Command) (r *Router) {
+	r = new(Router)
+	for _, cmd := range initial {
+		r.Register(cmd)
+	}
+
+	return
+}
