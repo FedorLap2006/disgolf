@@ -1,54 +1,47 @@
 package disgolf
 
 import (
-	"sync"
-
 	"github.com/bwmarrin/discordgo"
 )
 
 // A Router stores all the commands and routes the interactions
 type Router struct {
 	// Commands is a map of registered commands.
-	// Key is a string - command name. Value is a pointer to a Command.
+	// Key is command name. Value is command instance.
 	//
 	// NOTE: it is not recommended to use it directly, use Register, Get, Update, Unregister functions instead.
-	Commands sync.Map
+	Commands map[string]*Command
 }
 
 // Register registers the command.
 func (r *Router) Register(cmd *Command) {
-	r.Commands.Store(cmd.Name, cmd)
+	if _, ok := r.Commands[cmd.Name]; !ok {
+		r.Commands[cmd.Name] = cmd
+	}
 }
 
 // Get returns a command by specified name.
 func (r *Router) Get(name string) *Command {
-	command, ok := r.Commands.Load(name)
-	if ok {
-		return command.(*Command)
-	}
-
-	return nil
+	return r.Commands[name]
 }
 
 // Update updates the command and does all behind-the-scenes work.
 func (r *Router) Update(name string, newcmd *Command) (cmd *Command, err error) {
-	rawCmd, ok := r.Commands.Load(name)
 
-	if !ok {
-		return nil, ErrCommandNotExists
+	if cmd, ok := r.Commands[name]; ok {
+		r.Commands[name] = newcmd
+		return cmd, nil
 	}
 
-	r.Commands.Store(name, newcmd)
-	return rawCmd.(*Command), nil
+	return nil, ErrCommandNotExists
 }
 
 // Unregister removes a command from router
 func (r *Router) Unregister(name string) (command *Command, existed bool) {
-	var rawCommand interface{}
-	rawCommand, existed = r.Commands.LoadAndDelete(name)
+	command, existed = r.Commands[name]
 
 	if existed {
-		command = rawCommand.(*Command)
+		delete(r.Commands, name)
 	}
 
 	return
@@ -56,20 +49,15 @@ func (r *Router) Unregister(name string) (command *Command, existed bool) {
 
 // List returns all registered commands
 func (r Router) List() (list []*Command) {
-	r.Commands.Range(func(key, value interface{}) bool {
-		list = append(list, value.(*Command))
-		return true
-	})
+	for _, c := range r.Commands {
+		list = append(list, c)
+	}
 	return
 }
 
 // Count returns amount of commands stored
 func (r Router) Count() (c int) {
-	r.Commands.Range(func(_, _ interface{}) bool {
-		c++
-		return true
-	})
-	return
+	return len(r.Commands)
 }
 
 // Sync syncs all the commands with Discord.
@@ -81,10 +69,10 @@ func (r Router) Sync(s *discordgo.Session, application, guild string) error {
 		application = s.State.User.ID
 	}
 	var commands []*discordgo.ApplicationCommand
-	r.Commands.Range(func(_, cmd interface{}) bool {
-		commands = append(commands, cmd.(*Command).applicationCommand())
-		return true
-	})
+	for _, c := range r.Commands {
+		commands = append(commands, c.ApplicationCommand)
+
+	}
 	_, err := s.ApplicationCommandBulkOverwrite(application, guild, commands) // TODO: syncer
 	return err
 }
@@ -97,13 +85,12 @@ func (r *Router) HandleInteraction(s *discordgo.Session, i *discordgo.Interactio
 	}
 	data := i.ApplicationCommandData()
 
-	rcmd, ok := r.Commands.Load(data.Name)
-	if !ok {
+	rcmd := r.Get(data.Name)
+	if rcmd == nil {
 		return
 	}
 
-	cmd := rcmd.(*Command)
-	cmd.Handler.HandleCommand(NewCtx(s, i.Interaction, nil))
+	rcmd.Handler.HandleCommand(NewCtx(s, i.Interaction, nil))
 }
 
 // NewRouter constructs a router from a set of predefined commands.
