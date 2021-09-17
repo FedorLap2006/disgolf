@@ -20,8 +20,60 @@ func (r *Router) Register(cmd *Command) {
 	r.Commands.Store(cmd.Name, cmd)
 }
 
+// Get returns a command by specified name.
+func (r *Router) Get(name string) *Command {
+	command, ok := r.Commands.Load(name)
+	if ok {
+		return command.(*Command)
+	}
+
+	return nil
+}
+
+// Update updates the command and does all behind-the-scenes work.
+func (r *Router) Update(name string, newcmd *Command) (cmd *Command, err error) {
+	rawCmd, ok := r.Commands.Load(name)
+
+	if !ok {
+		return nil, ErrCommandNotExists
+	}
+
+	r.Commands.Store(name, newcmd)
+	return rawCmd.(*Command), nil
+}
+
+// Unregister removes a command from router
+func (r *Router) Unregister(name string) (command *Command, existed bool) {
+	var rawCommand interface{}
+	rawCommand, existed = r.Commands.LoadAndDelete(name)
+
+	if existed {
+		command = rawCommand.(*Command)
+	}
+
+	return
+}
+
+// List returns all registered commands
+func (r Router) List() (list []*Command) {
+	r.Commands.Range(func(key, value interface{}) bool {
+		list = append(list, value.(*Command))
+		return true
+	})
+	return
+}
+
+// Count returns amount of commands stored
+func (r Router) Count() (c int) {
+	r.Commands.Range(func(_, _ interface{}) bool {
+		c++
+		return true
+	})
+	return
+}
+
 // Sync syncs all the commands with Discord.
-func (r *Router) Sync(s *discordgo.Session, application, guild string) error {
+func (r Router) Sync(s *discordgo.Session, application, guild string) error {
 	if application == "" {
 		if s.State.User == nil {
 			panic("cannot determine application id")
@@ -29,8 +81,8 @@ func (r *Router) Sync(s *discordgo.Session, application, guild string) error {
 		application = s.State.User.ID
 	}
 	var commands []*discordgo.ApplicationCommand
-	r.Commands.Range(func(_, rawCmd interface{}) bool {
-		commands = append(commands, rawCmd.(*Command).ApplicationCommand)
+	r.Commands.Range(func(_, cmd interface{}) bool {
+		commands = append(commands, cmd.(*Command).applicationCommand())
 		return true
 	})
 	_, err := s.ApplicationCommandBulkOverwrite(application, guild, commands) // TODO: syncer
