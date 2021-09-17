@@ -47,7 +47,7 @@ func main() {
 		log.Fatal(fmt.Errorf("open exited with a error: %w", err))
 	}
 	defer bot.Close()
-	err = bot.Router.Sync(bot.Session, "", "679281186975252480")
+	err = bot.Router.Sync(bot.Session, "", "TEST-GUILD-ID")
 	if err != nil {
 		log.Fatal(fmt.Errorf("cannot publish commands: %w", err))
 	}
