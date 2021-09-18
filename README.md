@@ -45,9 +45,9 @@ func main() {
         Handler: disgolf.CommandHandlerFunc(func(ctx *disgolf.Ctx) error {
             ctx.Respond(&discordgo.InteractionResponse {
                 Type: discordgo.InteractionResponseChannelMessageWithSource,
-				Data: &discordgo.InteractionResponseData{
-					Content: "Hello world!",
-				},
+                Data: &discordgo.InteractionResponseData{
+                    Content: "Hello world!",
+                },
             })
         })
     })
@@ -64,7 +64,7 @@ func main() {
     defer bot.Close()
     
     stchan := make(chan os.Signal, 1)
-	signal.Notify(stchan, syscall.SIGTERM, os.Interrupt, syscall.SIGSEGV)
+    signal.Notify(stchan, syscall.SIGTERM, os.Interrupt, syscall.SIGSEGV)
 end:
 	for {
 		select {
