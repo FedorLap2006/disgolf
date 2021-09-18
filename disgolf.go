@@ -20,6 +20,6 @@ func New(token string) (*Bot, error) {
 
 	return &Bot{
 		Session: session,
-		Router:  new(Router),
+		Router:  NewRouter(nil),
 	}, nil
 }

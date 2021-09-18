@@ -23,11 +23,9 @@ func main() {
 		log.Fatal(err)
 	}
 	bot.Router.Register(&disgolf.Command{
-		ApplicationCommand: &discordgo.ApplicationCommand{
-			Name:        "ping_pong",
-			Description: "Ping it!",
-			Type:        discordgo.ChatApplicationCommand,
-		},
+		Name:        "ping_pong",
+		Description: "Ping it!",
+		Type:        discordgo.ChatApplicationCommand,
 		Handler: disgolf.HandlerFunc(func(ctx *disgolf.Ctx) {
 			_ = ctx.Respond(&discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,

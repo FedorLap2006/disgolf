@@ -22,6 +22,9 @@ func (r *Router) Register(cmd *Command) {
 
 // Get returns a command by specified name.
 func (r *Router) Get(name string) *Command {
+	if r == nil {
+		return nil
+	}
 	return r.Commands[name]
 }
 
@@ -48,7 +51,11 @@ func (r *Router) Unregister(name string) (command *Command, existed bool) {
 }
 
 // List returns all registered commands
-func (r Router) List() (list []*Command) {
+func (r *Router) List() (list []*Command) {
+	if r == nil {
+		return nil
+	}
+
 	for _, c := range r.Commands {
 		list = append(list, c)
 	}
@@ -56,7 +63,10 @@ func (r Router) List() (list []*Command) {
 }
 
 // Count returns amount of commands stored
-func (r Router) Count() (c int) {
+func (r *Router) Count() (c int) {
+	if r == nil {
+		return 0
+	}
 	return len(r.Commands)
 }
 
@@ -70,32 +80,52 @@ func (r Router) Sync(s *discordgo.Session, application, guild string) error {
 	}
 	var commands []*discordgo.ApplicationCommand
 	for _, c := range r.Commands {
-		commands = append(commands, c.ApplicationCommand)
+		commands = append(commands, c.ApplicationCommand())
 
 	}
 	_, err := s.ApplicationCommandBulkOverwrite(application, guild, commands) // TODO: syncer
 	return err
 }
 
+func (r *Router) getSubcommand(cmd *Command, opt *discordgo.ApplicationCommandInteractionDataOption) (*Command, *discordgo.ApplicationCommandInteractionDataOption) {
+	if cmd == nil {
+		return nil, nil
+	}
+
+	switch opt.Type {
+	case discordgo.ApplicationCommandOptionSubCommand:
+		return cmd.SubCommands.Get(opt.Name), opt
+	case discordgo.ApplicationCommandOptionSubCommandGroup:
+		return r.getSubcommand(cmd.SubCommands.Get(opt.Name), opt.Options[0])
+	}
+
+	return cmd, nil
+}
+
 // HandleInteraction is an interaction handler passed to discordgo.Session.AddHandler.
-//
 func (r *Router) HandleInteraction(s *discordgo.Session, i *discordgo.InteractionCreate) {
 	if i.Type != discordgo.InteractionApplicationCommand {
 		return
 	}
 	data := i.ApplicationCommandData()
 
-	rcmd := r.Get(data.Name)
-	if rcmd == nil {
+	cmd := r.Get(data.Name)
+	if cmd == nil {
 		return
 	}
+	var parent *discordgo.ApplicationCommandInteractionDataOption
+	if len(data.Options) != 0 {
+		cmd, parent = r.getSubcommand(cmd, data.Options[0])
+	}
 
-	rcmd.Handler.HandleCommand(NewCtx(s, i.Interaction, nil))
+	if cmd != nil {
+		cmd.Handler.HandleCommand(NewCtx(s, i.Interaction, parent))
+	}
 }
 
 // NewRouter constructs a router from a set of predefined commands.
 func NewRouter(initial []*Command) (r *Router) {
-	r = new(Router)
+	r = &Router{Commands: make(map[string]*Command, len(initial))}
 	for _, cmd := range initial {
 		r.Register(cmd)
 	}

@@ -17,8 +17,45 @@ func (f HandlerFunc) HandleCommand(ctx *Ctx) {
 	f(ctx)
 }
 
-// Command represents a command and extends discordgo.ApplicationCommand.
+// Command represents a command.
 type Command struct {
-	*discordgo.ApplicationCommand
-	Handler Handler
+	Name        string
+	Description string
+	Options     []*discordgo.ApplicationCommandOption
+	Type        discordgo.ApplicationCommandType
+	Handler     Handler
+
+	// NOTE: nesting of more than 3 level has no effect
+	SubCommands *Router
+}
+
+// ApplicationCommand converts Command to discordgo.ApplicationCommand.
+func (cmd Command) ApplicationCommand() *discordgo.ApplicationCommand {
+	applicationCommand := &discordgo.ApplicationCommand{
+		Name:        cmd.Name,
+		Description: cmd.Description,
+		Options:     cmd.Options,
+		Type:        cmd.Type,
+	}
+	for _, subcommand := range cmd.SubCommands.List() {
+		applicationCommand.Options = append(applicationCommand.Options, subcommand.ApplicationCommandOption())
+	}
+	return applicationCommand
+}
+
+// ApplicationCommandOption converts Command to discordgo.ApplicationCommandOption (subcommand).
+func (cmd Command) ApplicationCommandOption() *discordgo.ApplicationCommandOption {
+	applicationCommand := cmd.ApplicationCommand()
+	typ := discordgo.ApplicationCommandOptionSubCommand
+
+	if cmd.SubCommands != nil && cmd.SubCommands.Count() != 0 {
+		typ = discordgo.ApplicationCommandOptionSubCommandGroup
+	}
+
+	return &discordgo.ApplicationCommandOption{
+		Name:        applicationCommand.Name,
+		Description: applicationCommand.Description,
+		Options:     applicationCommand.Options,
+		Type:        typ,
+	}
 }
