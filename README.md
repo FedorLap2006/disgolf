@@ -38,10 +38,8 @@ func main() {
     }
 
     bot.Router.Register(&disgolf.Command{
-        ApplicationCommand: &discordgo.ApplicationCommand{
-            Name: "hello_world",
-            Description: "Say hi to the world!",
-        },
+        Name: "hello_world",
+        Description: "Say hi to the world!",
         Handler: disgolf.CommandHandlerFunc(func(ctx *disgolf.Ctx) error {
             ctx.Respond(&discordgo.InteractionResponse {
                 Type: discordgo.InteractionResponseChannelMessageWithSource,
