@@ -11,6 +11,8 @@ type Router struct {
 	//
 	// NOTE: it is not recommended to use it directly, use Register, Get, Update, Unregister functions instead.
 	Commands map[string]*Command
+
+	Syncer CommandSyncer
 }
 
 // Register registers the command.
@@ -70,21 +72,37 @@ func (r *Router) Count() (c int) {
 	return len(r.Commands)
 }
 
-// Sync syncs all the commands with Discord.
-func (r Router) Sync(s *discordgo.Session, application, guild string) error {
+// A CommandSyncer syncs all the commands with Discord.
+type CommandSyncer interface {
+	Sync(r *Router, s *discordgo.Session, application, guild string) error
+}
+
+// BulkCommandSyncer syncs all the commands using ApplicationCommandBulkOverwrite function.
+type BulkCommandSyncer struct{}
+
+// Sync implements CommandSyncer interface.
+func (BulkCommandSyncer) Sync(r *Router, s *discordgo.Session, application string, guild string) error {
+	if application == "" {
+		panic("empty application id")
+	}
+
+	var commands []*discordgo.ApplicationCommand
+	for _, c := range r.Commands {
+		commands = append(commands, c.ApplicationCommand())
+	}
+	_, err := s.ApplicationCommandBulkOverwrite(application, guild, commands)
+	return err
+}
+
+// Sync wraps Router.Syncer and automatically detects application id.
+func (r *Router) Sync(s *discordgo.Session, application, guild string) error {
 	if application == "" {
 		if s.State.User == nil {
 			panic("cannot determine application id")
 		}
 		application = s.State.User.ID
 	}
-	var commands []*discordgo.ApplicationCommand
-	for _, c := range r.Commands {
-		commands = append(commands, c.ApplicationCommand())
-
-	}
-	_, err := s.ApplicationCommandBulkOverwrite(application, guild, commands) // TODO: syncer
-	return err
+	return r.Syncer.Sync(r, s, application, guild)
 }
 
 func (r *Router) getSubcommand(cmd *Command, opt *discordgo.ApplicationCommandInteractionDataOption) (*Command, *discordgo.ApplicationCommandInteractionDataOption) {
@@ -125,7 +143,7 @@ func (r *Router) HandleInteraction(s *discordgo.Session, i *discordgo.Interactio
 
 // NewRouter constructs a router from a set of predefined commands.
 func NewRouter(initial []*Command) (r *Router) {
-	r = &Router{Commands: make(map[string]*Command, len(initial))}
+	r = &Router{Commands: make(map[string]*Command, len(initial)), Syncer: BulkCommandSyncer{}}
 	for _, cmd := range initial {
 		r.Register(cmd)
 	}
