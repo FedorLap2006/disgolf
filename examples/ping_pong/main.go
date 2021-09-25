@@ -4,6 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
@@ -45,9 +49,19 @@ func main() {
 		log.Fatal(fmt.Errorf("open exited with a error: %w", err))
 	}
 	defer bot.Close()
-	err = bot.Router.Sync(bot.Session, "", "TEST-GUILD-ID")
+	err = bot.Router.Sync(bot.Session, "", "679281186975252480")
 	if err != nil {
 		log.Fatal(fmt.Errorf("cannot publish commands: %w", err))
 	}
-
+	stchan := make(chan os.Signal, 1)
+	signal.Notify(stchan, syscall.SIGTERM, os.Interrupt, syscall.SIGSEGV)
+end:
+	for {
+		select {
+		case <-stchan:
+			break end
+		default:
+		}
+		time.Sleep(time.Second)
+	}
 }
