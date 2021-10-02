@@ -13,17 +13,27 @@ type Handler interface {
 type HandlerFunc func(ctx *Ctx)
 
 // HandleCommand implements Handler interface and calls the function with provided context
-func (f HandlerFunc) HandleCommand(ctx *Ctx) {
-	f(ctx)
+func (f HandlerFunc) HandleCommand(ctx *Ctx) { f(ctx) }
+
+// A MessageHandler processes the message command
+type MessageHandler interface {
+	HandleMessageCommand(ctx *MessageCtx)
 }
+
+// HandlerFunc is a wrapper around MessageHandler for functions
+type MessageHandlerFunc func(ctx *MessageCtx)
+
+// HandleCommand implements MessageHandler interface and calls the function with provided context
+func (f MessageHandlerFunc) HandleMessageCommand(ctx *MessageCtx) { f(ctx) }
 
 // Command represents a command.
 type Command struct {
-	Name        string
-	Description string
-	Options     []*discordgo.ApplicationCommandOption
-	Type        discordgo.ApplicationCommandType
-	Handler     Handler
+	Name           string
+	Description    string
+	Options        []*discordgo.ApplicationCommandOption
+	Type           discordgo.ApplicationCommandType
+	Handler        Handler
+	MessageHandler MessageHandler
 
 	// NOTE: nesting of more than 3 level has no effect
 	SubCommands *Router
