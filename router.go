@@ -1,6 +1,8 @@
 package disgolf
 
 import (
+	"strings"
+
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -138,6 +140,53 @@ func (r *Router) HandleInteraction(s *discordgo.Session, i *discordgo.Interactio
 
 	if cmd != nil {
 		cmd.Handler.HandleCommand(NewCtx(s, i.Interaction, parent))
+	}
+}
+
+type MessageHandlerConfig struct {
+	// Prefixes got will respond to
+	Prefixes      []string
+	MentionPrefix bool
+
+	ArgumentDelimiter string
+}
+
+func (r *Router) MakeMessageHandler(cfg *MessageHandlerConfig) func(s *discordgo.Session, m *discordgo.MessageCreate) {
+	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
+		var match bool
+		var prefixes []string
+		prefixes = cfg.Prefixes
+		if cfg.MentionPrefix {
+			prefixes = append(prefixes,
+				"<@"+s.State.User.ID+">",
+				"<@!"+s.State.User.ID+">",
+				"<@"+s.State.User.ID+"> ",
+				"<@!"+s.State.User.ID+"> ",
+			)
+		}
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(m.Content, prefix) {
+				match = true
+				m.Content = strings.TrimSpace(strings.TrimPrefix(m.Content, prefix))
+				break
+			}
+		}
+
+		if !match {
+			return
+		}
+		ctx := NewMessageCtx(s, m.Message, cfg.ArgumentDelimiter)
+
+		command := ctx.Arguments[0]
+
+		handler, ok := r.Commands[command]
+
+		if !ok || handler.MessageHandler == nil {
+			return
+		}
+
+		ctx.Arguments = ctx.Arguments[1:]
+		handler.MessageHandler.HandleMessageCommand(ctx)
 	}
 }
 
