@@ -38,11 +38,18 @@ func main() {
 				},
 			})
 		}),
+		MessageHandler: disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
+			_, _ = ctx.Reply("Hi, I'm a bot built on Disgolf library", true)
+		}),
 	})
 	bot.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		log.Println("Bot is up!")
 	})
 	bot.AddHandler(bot.Router.HandleInteraction)
+	bot.AddHandler(bot.Router.MakeMessageHandler(&disgolf.MessageHandlerConfig{
+		Prefixes:      []string{"d.", "dis.", "disgolf."},
+		MentionPrefix: true,
+	}))
 
 	err = bot.Open()
 	if err != nil {
