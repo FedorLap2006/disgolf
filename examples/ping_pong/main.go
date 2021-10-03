@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -11,18 +10,18 @@ import (
 
 	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
-)
-
-var (
-	token = flag.String("token", "", "Bot token")
+	dotenv "github.com/joho/godotenv"
 )
 
 func init() {
-	flag.Parse()
+	err := dotenv.Load()
+	if err != nil {
+		log.Fatal(fmt.Errorf("cannot load .env: %w", err))
+	}
 }
 
 func main() {
-	bot, err := disgolf.New(*token)
+	bot, err := disgolf.New(os.Getenv("BOT_TOKEN"))
 	if err != nil {
 		log.Fatal(err)
 	}
