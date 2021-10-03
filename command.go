@@ -28,12 +28,14 @@ func (f MessageHandlerFunc) HandleMessageCommand(ctx *MessageCtx) { f(ctx) }
 
 // Command represents a command.
 type Command struct {
-	Name           string
-	Description    string
-	Options        []*discordgo.ApplicationCommandOption
-	Type           discordgo.ApplicationCommandType
-	Handler        Handler
-	MessageHandler MessageHandler
+	Name               string
+	Description        string
+	Options            []*discordgo.ApplicationCommandOption
+	Type               discordgo.ApplicationCommandType
+	Handler            Handler
+	Middlewares        []Handler
+	MessageHandler     MessageHandler
+	MessageMiddlewares []MessageHandler
 
 	// NOTE: nesting of more than 3 level has no effect
 	SubCommands *Router

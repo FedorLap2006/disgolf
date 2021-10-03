@@ -139,7 +139,8 @@ func (r *Router) HandleInteraction(s *discordgo.Session, i *discordgo.Interactio
 	}
 
 	if cmd != nil {
-		cmd.Handler.HandleCommand(NewCtx(s, i.Interaction, parent))
+		ctx := NewCtx(s, cmd, i.Interaction, parent)
+		ctx.Next()
 	}
 }
 

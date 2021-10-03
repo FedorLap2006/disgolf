@@ -13,9 +13,12 @@ type OptionsMap = map[string]*discordgo.ApplicationCommandInteractionDataOption
 // and contains interaction and preprocessed options.
 type Ctx struct {
 	*discordgo.Session
+	Caller      *Command
 	Interaction *discordgo.Interaction
 	Options     OptionsMap
 	OptionsRaw  []*discordgo.ApplicationCommandInteractionDataOption
+
+	remainingHandlers []Handler
 }
 
 // Respond is a wrapper for ctx.Session.InteractionRespond
@@ -23,17 +26,31 @@ func (ctx *Ctx) Respond(response *discordgo.InteractionResponse) error {
 	return ctx.Session.InteractionRespond(ctx.Interaction, response)
 }
 
+func (ctx *Ctx) Next() {
+	if len(ctx.remainingHandlers) == 0 {
+		return
+	}
+
+	handler := ctx.remainingHandlers[0]
+	ctx.remainingHandlers = ctx.remainingHandlers[1:]
+
+	handler.HandleCommand(ctx)
+}
+
 // NewCtx constructs ctx from given parameters.
-func NewCtx(s *discordgo.Session, i *discordgo.Interaction, parent *discordgo.ApplicationCommandInteractionDataOption) *Ctx {
+func NewCtx(s *discordgo.Session, caller *Command, i *discordgo.Interaction, parent *discordgo.ApplicationCommandInteractionDataOption) *Ctx {
 	options := i.ApplicationCommandData().Options
 	if parent != nil {
 		options = parent.Options
 	}
 	return &Ctx{
 		Session:     s,
+		Caller:      caller,
 		Interaction: i,
 		Options:     makeOptionMap(options),
 		OptionsRaw:  options,
+
+		remainingHandlers: append(caller.Middlewares, caller.Handler),
 	}
 }
 

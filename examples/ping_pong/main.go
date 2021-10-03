@@ -41,6 +41,13 @@ func main() {
 		MessageHandler: disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
 			_, _ = ctx.Reply("Hi, I'm a bot built on Disgolf library", true)
 		}),
+
+		Middlewares: []disgolf.Handler{
+			disgolf.HandlerFunc(func(ctx *disgolf.Ctx) {
+				fmt.Println("Middleware worked!")
+				ctx.Next()
+			}),
+		},
 	})
 	bot.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		log.Println("Bot is up!")
