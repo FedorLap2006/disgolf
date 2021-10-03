@@ -1,8 +1,6 @@
 package disgolf
 
 import (
-	"strings"
-
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -67,8 +65,23 @@ func makeOptionMap(options []*discordgo.ApplicationCommandInteractionDataOption)
 // MessageCtx is a context provided to message command handler. It contains the message
 type MessageCtx struct {
 	*discordgo.Session
+	Caller    *Command
 	Message   *discordgo.Message
 	Arguments []string
+
+	remainingHandlers []MessageHandler
+}
+
+// Next calls the next middleware / command handler.
+func (ctx *MessageCtx) Next() {
+	if len(ctx.remainingHandlers) == 0 {
+		return
+	}
+
+	handler := ctx.remainingHandlers[0]
+	ctx.remainingHandlers = ctx.remainingHandlers[1:]
+
+	handler.HandleMessageCommand(ctx)
 }
 
 // Reply sends and returns a simple (content-only) message replying to the command message. If mention is true the command author is mentioned in the reply.
@@ -91,14 +104,12 @@ func (ctx *MessageCtx) ReplyComplex(message *discordgo.MessageSend, mention bool
 
 // NewMessageCtx constructs context from a message.
 // If argdelim is not empty it is a delimiter for the arguments, otherwise the arguments are split by a space.
-func NewMessageCtx(s *discordgo.Session, m *discordgo.Message, argdelim string) *MessageCtx {
-	if argdelim == "" {
-		argdelim = " "
-	}
-
+func NewMessageCtx(s *discordgo.Session, caller *Command, m *discordgo.Message, arguments []string) *MessageCtx {
 	return &MessageCtx{
-		Session:   s,
-		Message:   m,
-		Arguments: strings.Split(m.Content, argdelim),
+		Session:           s,
+		Caller:            caller,
+		Message:           m,
+		Arguments:         arguments,
+		remainingHandlers: append(caller.MessageMiddlewares, caller.MessageHandler),
 	}
 }

@@ -153,6 +153,9 @@ type MessageHandlerConfig struct {
 }
 
 func (r *Router) MakeMessageHandler(cfg *MessageHandlerConfig) func(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if cfg.ArgumentDelimiter == "" {
+		cfg.ArgumentDelimiter = " "
+	}
 	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		var match bool
 		var prefixes []string
@@ -176,18 +179,21 @@ func (r *Router) MakeMessageHandler(cfg *MessageHandlerConfig) func(s *discordgo
 		if !match {
 			return
 		}
-		ctx := NewMessageCtx(s, m.Message, cfg.ArgumentDelimiter)
 
-		command := ctx.Arguments[0]
+		arguments := strings.Split(m.Content, cfg.ArgumentDelimiter)
 
-		handler, ok := r.Commands[command]
+		commandName := arguments[0]
 
-		if !ok || handler.MessageHandler == nil {
+		command, ok := r.Commands[commandName]
+
+		if !ok || command.MessageHandler == nil {
 			return
 		}
 
-		ctx.Arguments = ctx.Arguments[1:]
-		handler.MessageHandler.HandleMessageCommand(ctx)
+		arguments = arguments[1:]
+
+		ctx := NewMessageCtx(s, command, m.Message, arguments)
+		ctx.Next()
 	}
 }
 

@@ -47,6 +47,13 @@ func main() {
 				ctx.Next()
 			}),
 		},
+
+		MessageMiddlewares: []disgolf.MessageHandler{
+			disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
+				fmt.Println("Message niddleware worked!", ctx.Arguments)
+				ctx.Next()
+			}),
+		},
 	})
 	bot.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		log.Println("Bot is up!")
