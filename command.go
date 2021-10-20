@@ -39,6 +39,8 @@ type Command struct {
 
 	// NOTE: nesting of more than 3 level has no effect
 	SubCommands *Router
+	// Custom payload for the command. Useful for module names, and such stuff.
+	Custom interface{}
 }
 
 // ApplicationCommand converts Command to discordgo.ApplicationCommand.
