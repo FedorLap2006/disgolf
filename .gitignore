@@ -26,3 +26,9 @@ examples/*/.env
 /Godeps/
 
 # End of https://www.toptal.com/developers/gitignore/api/dotenv,go
+
+# Code editors
+*.code-workspace
+.vscode
+.vs
+.idea
