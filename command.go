@@ -36,9 +36,19 @@ type Command struct {
 	Middlewares        []Handler
 	MessageHandler     MessageHandler
 	MessageMiddlewares []MessageHandler
-
 	// NOTE: nesting of more than 3 level has no effect
 	SubCommands *Router
+
+	// Additional command info, primarely used in help commands.
+
+	// Short version of Description. Useful when listing all the commands.
+	ShortDescription string
+	// Module name. Default help handler automatically groups all commands by module names.
+	Module string
+	// Command examples (key is the name, value is the example).
+	Examples map[string]string
+	// Custom payload for the command.
+	Custom interface{}
 }
 
 // ApplicationCommand converts Command to discordgo.ApplicationCommand.
