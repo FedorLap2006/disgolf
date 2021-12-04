@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -11,18 +10,18 @@ import (
 
 	"github.com/FedorLap2006/disgolf"
 	"github.com/bwmarrin/discordgo"
-)
-
-var (
-	token = flag.String("token", "", "Bot token")
+	dotenv "github.com/joho/godotenv"
 )
 
 func init() {
-	flag.Parse()
+	err := dotenv.Load()
+	if err != nil {
+		log.Fatal(fmt.Errorf("cannot load .env: %w", err))
+	}
 }
 
 func main() {
-	bot, err := disgolf.New(*token)
+	bot, err := disgolf.New(os.Getenv("BOT_TOKEN"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -44,7 +43,13 @@ func main() {
 								Data: &discordgo.InteractionResponseData{Content: "hi (group)"},
 							})
 						}),
+						MessageHandler: disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
+							_, _ = ctx.Reply("hi (group)", false)
+						}),
 					},
+				}),
+				MessageHandler: disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
+					_, _ = ctx.Reply("hi (group default)", false)
 				}),
 			},
 			{
@@ -56,20 +61,30 @@ func main() {
 						Data: &discordgo.InteractionResponseData{Content: "hi"},
 					})
 				}),
+				MessageHandler: disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
+					_, _ = ctx.Reply("hi", false)
+				}),
 			},
+		}),
+		MessageHandler: disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
+			_, _ = ctx.Reply("hi (default)", false)
 		}),
 	})
 	bot.AddHandler(func(s *discordgo.Session, r *discordgo.Ready) {
 		log.Println("Bot is up!")
 	})
 	bot.AddHandler(bot.Router.HandleInteraction)
+	bot.AddHandler(bot.Router.MakeMessageHandler(&disgolf.MessageHandlerConfig{
+		Prefixes:      []string{"d.", "dis.", "disgolf."},
+		MentionPrefix: true,
+	}))
 
 	err = bot.Open()
 	if err != nil {
 		log.Fatal(fmt.Errorf("open exited with a error: %w", err))
 	}
 	defer bot.Close()
-	err = bot.Router.Sync(bot.Session, "", "GUILD-ID")
+	err = bot.Router.Sync(bot.Session, "", "679281186975252480")
 	if err != nil {
 		log.Fatal(fmt.Errorf("cannot publish commands: %w", err))
 	}

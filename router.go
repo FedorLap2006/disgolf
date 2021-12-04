@@ -152,6 +152,21 @@ type MessageHandlerConfig struct {
 	ArgumentDelimiter string
 }
 
+func (r *Router) getMessageSubcommand(cmd *Command, arguments []string) *Command {
+	if len(arguments) == 0 {
+		return cmd
+	}
+	subcommand := cmd.SubCommands.Get(arguments[0])
+	if subcommand != nil {
+		if len(arguments) > 1 {
+			return r.getMessageSubcommand(subcommand, arguments[1:])
+		} else {
+			return subcommand
+		}
+	}
+	return cmd
+}
+
 func (r *Router) MakeMessageHandler(cfg *MessageHandlerConfig) func(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if cfg.ArgumentDelimiter == "" {
 		cfg.ArgumentDelimiter = " "
@@ -185,8 +200,12 @@ func (r *Router) MakeMessageHandler(cfg *MessageHandlerConfig) func(s *discordgo
 		commandName := arguments[0]
 
 		command, ok := r.Commands[commandName]
+		if !ok {
+			return
+		}
 
-		if !ok || command.MessageHandler == nil {
+		command = r.getMessageSubcommand(command, arguments[1:])
+		if command.MessageHandler == nil {
 			return
 		}
 
