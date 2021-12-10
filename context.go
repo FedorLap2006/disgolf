@@ -36,7 +36,7 @@ func (ctx *Ctx) Next() {
 }
 
 // NewCtx constructs ctx from given parameters.
-func NewCtx(s *discordgo.Session, caller *Command, i *discordgo.Interaction, parent *discordgo.ApplicationCommandInteractionDataOption) *Ctx {
+func NewCtx(s *discordgo.Session, caller *Command, i *discordgo.Interaction, parent *discordgo.ApplicationCommandInteractionDataOption, handlers []Handler) *Ctx {
 	options := i.ApplicationCommandData().Options
 	if parent != nil {
 		options = parent.Options
@@ -48,7 +48,7 @@ func NewCtx(s *discordgo.Session, caller *Command, i *discordgo.Interaction, par
 		Options:     makeOptionMap(options),
 		OptionsRaw:  options,
 
-		remainingHandlers: append(caller.Middlewares, caller.Handler),
+		remainingHandlers: handlers,
 	}
 }
 
@@ -104,12 +104,12 @@ func (ctx *MessageCtx) ReplyComplex(message *discordgo.MessageSend, mention bool
 
 // NewMessageCtx constructs context from a message.
 // If argdelim is not empty it is a delimiter for the arguments, otherwise the arguments are split by a space.
-func NewMessageCtx(s *discordgo.Session, caller *Command, m *discordgo.Message, arguments []string) *MessageCtx {
+func NewMessageCtx(s *discordgo.Session, caller *Command, m *discordgo.Message, arguments []string, handlers []MessageHandler) *MessageCtx {
 	return &MessageCtx{
 		Session:           s,
 		Caller:            caller,
 		Message:           m,
 		Arguments:         arguments,
-		remainingHandlers: append(caller.MessageMiddlewares, caller.MessageHandler),
+		remainingHandlers: handlers,
 	}
 }

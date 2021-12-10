@@ -29,10 +29,34 @@ func main() {
 		Name:        "subcommands",
 		Description: "Lo and behold, subcommands are coming!",
 		Type:        discordgo.ChatApplicationCommand,
+		MessageMiddlewares: []disgolf.MessageHandler{
+			disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
+				fmt.Println("middleware")
+				ctx.Next()
+			}),
+		},
+		Middlewares: []disgolf.Handler{
+			disgolf.HandlerFunc(func(ctx *disgolf.Ctx) {
+				fmt.Println("middleware")
+				ctx.Next()
+			}),
+		},
 		SubCommands: disgolf.NewRouter([]*disgolf.Command{
 			{
 				Name:        "group",
 				Description: "Subcommand group",
+				MessageMiddlewares: []disgolf.MessageHandler{
+					disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
+						fmt.Println("group middleware")
+						ctx.Next()
+					}),
+				},
+				Middlewares: []disgolf.Handler{
+					disgolf.HandlerFunc(func(ctx *disgolf.Ctx) {
+						fmt.Println("group middleware")
+						ctx.Next()
+					}),
+				},
 				SubCommands: disgolf.NewRouter([]*disgolf.Command{
 					{
 						Name:        "subcommand",
@@ -46,6 +70,18 @@ func main() {
 						MessageHandler: disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
 							_, _ = ctx.Reply("hi (group)", false)
 						}),
+						MessageMiddlewares: []disgolf.MessageHandler{
+							disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
+								fmt.Println("individual middleware")
+								ctx.Next()
+							}),
+						},
+						Middlewares: []disgolf.Handler{
+							disgolf.HandlerFunc(func(ctx *disgolf.Ctx) {
+								fmt.Println("individual middleware")
+								ctx.Next()
+							}),
+						},
 					},
 				}),
 				MessageHandler: disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
@@ -64,6 +100,18 @@ func main() {
 				MessageHandler: disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
 					_, _ = ctx.Reply("hi", false)
 				}),
+				MessageMiddlewares: []disgolf.MessageHandler{
+					disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {
+						fmt.Println("individual middleware (2nd level)")
+						ctx.Next()
+					}),
+				},
+				Middlewares: []disgolf.Handler{
+					disgolf.HandlerFunc(func(ctx *disgolf.Ctx) {
+						fmt.Println("individual middleware (2nd level)")
+						ctx.Next()
+					}),
+				},
 			},
 		}),
 		MessageHandler: disgolf.MessageHandlerFunc(func(ctx *disgolf.MessageCtx) {

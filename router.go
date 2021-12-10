@@ -107,19 +107,20 @@ func (r *Router) Sync(s *discordgo.Session, application, guild string) error {
 	return r.Syncer.Sync(r, s, application, guild)
 }
 
-func (r *Router) getSubcommand(cmd *Command, opt *discordgo.ApplicationCommandInteractionDataOption) (*Command, *discordgo.ApplicationCommandInteractionDataOption) {
+func (r *Router) getSubcommand(cmd *Command, opt *discordgo.ApplicationCommandInteractionDataOption, parent []Handler) (*Command, *discordgo.ApplicationCommandInteractionDataOption, []Handler) {
 	if cmd == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
+	subcommand := cmd.SubCommands.Get(opt.Name)
 	switch opt.Type {
 	case discordgo.ApplicationCommandOptionSubCommand:
-		return cmd.SubCommands.Get(opt.Name), opt
+		return subcommand, opt, append(parent, append(subcommand.Middlewares, subcommand.Handler)...)
 	case discordgo.ApplicationCommandOptionSubCommandGroup:
-		return r.getSubcommand(cmd.SubCommands.Get(opt.Name), opt.Options[0])
+		return r.getSubcommand(subcommand, opt.Options[0], append(parent, subcommand.Middlewares...))
 	}
 
-	return cmd, nil
+	return cmd, nil, append(parent, cmd.Handler)
 }
 
 // HandleInteraction is an interaction handler passed to discordgo.Session.AddHandler.
@@ -134,12 +135,13 @@ func (r *Router) HandleInteraction(s *discordgo.Session, i *discordgo.Interactio
 		return
 	}
 	var parent *discordgo.ApplicationCommandInteractionDataOption
+	handlers := append(cmd.Middlewares, cmd.Handler)
 	if len(data.Options) != 0 {
-		cmd, parent = r.getSubcommand(cmd, data.Options[0])
+		cmd, parent, handlers = r.getSubcommand(cmd, data.Options[0], cmd.Middlewares)
 	}
 
 	if cmd != nil {
-		ctx := NewCtx(s, cmd, i.Interaction, parent)
+		ctx := NewCtx(s, cmd, i.Interaction, parent, handlers)
 		ctx.Next()
 	}
 }
@@ -152,19 +154,19 @@ type MessageHandlerConfig struct {
 	ArgumentDelimiter string
 }
 
-func (r *Router) getMessageSubcommand(cmd *Command, arguments []string) (*Command, []string) {
+func (r *Router) getMessageSubcommand(cmd *Command, arguments []string, parent []MessageHandler) (*Command, []string, []MessageHandler) {
 	if len(arguments) == 0 {
-		return cmd, arguments
+		return cmd, arguments, append(parent, cmd.MessageHandler)
 	}
 	subcommand := cmd.SubCommands.Get(arguments[0])
 	if subcommand != nil {
 		if len(arguments) > 1 {
-			return r.getMessageSubcommand(subcommand, arguments[1:])
+			return r.getMessageSubcommand(subcommand, arguments[1:], append(parent, subcommand.MessageMiddlewares...)) // TODO: opt-out
 		} else {
-			return subcommand, arguments[1:]
+			return subcommand, arguments[1:], append(parent, append(subcommand.MessageMiddlewares, subcommand.MessageHandler)...)
 		}
 	}
-	return cmd, arguments
+	return cmd, arguments, append(parent, cmd.MessageHandler)
 }
 
 func (r *Router) MakeMessageHandler(cfg *MessageHandlerConfig) func(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -205,12 +207,12 @@ func (r *Router) MakeMessageHandler(cfg *MessageHandlerConfig) func(s *discordgo
 		}
 		arguments = arguments[1:]
 
-		command, arguments = r.getMessageSubcommand(command, arguments)
+		command, arguments, handlers := r.getMessageSubcommand(command, arguments, command.MessageMiddlewares)
 		if command.MessageHandler == nil {
 			return
 		}
 
-		ctx := NewMessageCtx(s, command, m.Message, arguments)
+		ctx := NewMessageCtx(s, command, m.Message, arguments, handlers)
 		ctx.Next()
 	}
 }
