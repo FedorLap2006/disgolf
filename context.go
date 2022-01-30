@@ -10,11 +10,11 @@ type OptionsMap = map[string]*discordgo.ApplicationCommandInteractionDataOption
 // Ctx is a context provided to a command. It embeds session for easier use,
 // and contains interaction and preprocessed options.
 type Ctx struct {
-	*discordgo.Session
-	Caller      *Command
-	Interaction *discordgo.Interaction
-	Options     OptionsMap
-	OptionsRaw  []*discordgo.ApplicationCommandInteractionDataOption
+	*discordgo.Session `json:"-"`
+	Caller      *Command `json:"caller"`
+	Interaction *discordgo.Interaction `json:"interaction"`
+	Options     OptionsMap `json:"options"`
+	OptionsRaw  []*discordgo.ApplicationCommandInteractionDataOption `json:"options_raw"`
 
 	remainingHandlers []Handler
 }
@@ -34,6 +34,11 @@ func (ctx *Ctx) Next() {
 
 	handler.HandleCommand(ctx)
 }
+
+func (ctx *Ctx) String() string {
+	return fmt.Sprintf(`caller: %s guild: %s options: %v`, ctx.Caller.Name, ctx.Interaction.GuildID, ctx.Options)
+}
+
 
 // NewCtx constructs ctx from given parameters.
 func NewCtx(s *discordgo.Session, caller *Command, i *discordgo.Interaction, parent *discordgo.ApplicationCommandInteractionDataOption, handlers []Handler) *Ctx {
