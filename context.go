@@ -1,6 +1,8 @@
 package disgolf
 
 import (
+	"fmt"
+
 	"github.com/bwmarrin/discordgo"
 )
 
